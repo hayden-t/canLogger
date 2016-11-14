@@ -30,7 +30,7 @@ S1_Control,S1_Return,S2_Control,S2_Return,Converter_Control,Converter_Measured,L
 
 #define DEBUG 0
 #define PRINT_HEX 0
-#define DIAG_DELAY 100//milli delay between diag requests. valve block data takes 45 milli to return.
+#define DIAG_DELAY 200//milli delay between diag requests. valve block data takes 45 milli to return.//may not work if too small
 
 //#define CARD//enable/disable SD card
 
