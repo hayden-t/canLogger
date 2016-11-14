@@ -24,12 +24,15 @@ Y2-Axis:
 Control current is state requested by ECU : 100mA not activated, 1000mA activated
 Measured current is actual state of valve : <=200mA not activated, >200mA <900mA controlled, 900mA=> <1333mA activated
 
+16 valve readings:
+S1_Control,S1_Return,S2_Control,S2_Return,Converter_Control,Converter_Measured,Line_Control,Line_Measured,B1_Control,B1_Measured,C1_Control,C1_Measured,C2_Control,C2_Measured,C3_Control,C3_Measured
 */
 
 #define DEBUG 0
 #define PRINT_HEX 0
-#define DIAG_DELAY 250//milli delay between diag requests. valve block data takes 45 milli to return.
+#define DIAG_DELAY 100//milli delay between diag requests. valve block data takes 45 milli to return.
 
+//#define CARD//enable/disable SD card
 
 #include <SPI.h>
 #include <SD.h>
@@ -48,14 +51,17 @@ int valveState[16];
 int currentGear;
 int lastGear;
 
-#include "card.h"
+#ifdef CARD
+  #include "card.h"
+#endif
 #include "display.h"
 
 void setup()
 {
     Serial.begin(9600);
-    
+#ifdef CARD    
     initCard();
+#endif    
     initDisplay();
 
     while (CAN_OK != CAN.begin(CAN_500KBPS))              // init can bus : baudrate = 500k
@@ -159,10 +165,10 @@ void loop()
 
                   
                   if(arrayPos == 14)//recieved all valve data, process
-                  {    
+                  {
                    
                       //rewrite first 4 bytes with 4 bits of 4th byte
-                     //Sequence S1 & S2 valve state, only on/off
+                     //Sequence S1 & S2 valve state (control & measured), only on/off
                         valveState[0] = (valveState[3]&B10000000)>>7;
                         valveState[1] = (valveState[3]&B01000000)>>6;
                         valveState[2] = (valveState[3]&B00100000)>>5;
@@ -174,14 +180,14 @@ void loop()
                         {
                             if(i > 3)//valveState 5 to 16, milliamp
                             {
-                              valveState[i] *= 10;//* 10 = valve milliamp current
-                              if(valveState[i] >= 900)digitalWrite(ledArray[i],HIGH);
-                              else digitalWrite(ledArray[i],LOW);
+                              valveState[i] *= 10;//* 10 = valve milliamp current                              
+                              //if(valveState[i] >= 900)digitalWrite(ledArray[i],HIGH);
+                              //else digitalWrite(ledArray[i],LOW);
                             }
                             else//valveState 1-4, on/off
                             {
-                              if(valveState[i])digitalWrite(ledArray[i],HIGH);
-                              else digitalWrite(ledArray[i],LOW);
+                              //if(valveState[i])digitalWrite(ledArray[i],HIGH);
+                              //else digitalWrite(ledArray[i],LOW);
                             }
                           
                             if(PRINT_HEX)Serial.print(valveState[i], HEX);
@@ -196,8 +202,12 @@ void loop()
                             dataString += ","+String(valveState[i]);
                         }
                         Serial.println();
+
+                    drawGraphs();
                         
+                    #ifdef CARD 
                         logData(dataString);
+                    #endif
                   }
                   
                 }
